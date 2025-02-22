@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de la Serpiente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        canvas {
+            background-color: #ffcc00;
+            border: 3px solid #333;
+        }
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            font-size: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen bg-green-300 relative">
+    <div id="startScreen">
+        <h1 class="text-4xl font-bold mb-4">🐍 Juego de la Serpiente 🐍</h1>
+        <button id="startGame" class="px-6 py-3 bg-blue-500 text-white rounded text-xl">Iniciar Juego</button>
+    </div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div class="mt-4">
+        <button id="pauseGame" class="px-4 py-2 bg-yellow-500 text-white rounded">Pausar</button>
+        <button id="resumeGame" class="px-4 py-2 bg-green-500 text-white rounded">Reanudar</button>
+        <button id="endGame" class="px-4 py-2 bg-red-500 text-white rounded">Finalizar</button>
+    </div>
+    <audio id="eatSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+    
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const startScreen = document.getElementById("startScreen");
+        const eatSound = document.getElementById("eatSound");
+        
+        const gridSize = 20;
+        let snake = [{ x: 200, y: 200 }];
+        let direction = "RIGHT";
+        let apple = { x: 100, y: 100 };
+        let gameInterval;
+        let newDirection = "RIGHT";
+        let gameRunning = false;
+        let speed = 300;
+        let score = 0;
+        
+        function drawSnake() {
+            ctx.fillStyle = "blue";
+            snake.forEach((segment, index) => {
+                ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
+                if (index === 0) {
+                    ctx.fillStyle = "darkblue";
+                }
+            });
+        }
+        
+        function drawApple() {
+            ctx.fillStyle = "red";
+            ctx.beginPath();
+            ctx.arc(apple.x + gridSize / 2, apple.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function updateSnake() {
+            direction = newDirection;
+            let head = { ...snake[0] };
+            if (direction === "RIGHT") head.x += gridSize;
+            if (direction === "LEFT") head.x -= gridSize;
+            if (direction === "UP") head.y -= gridSize;
+            if (direction === "DOWN") head.y += gridSize;
+            
+            if (head.x === apple.x && head.y === apple.y) {
+                apple = {
+                    x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
+                    y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize,
+                };
+                score++;
+                speed = Math.max(50, speed - 20);
+                restartGameLoop();
+                eatSound.play();
+            } else {
+                snake.pop();
+            }
+            
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height || snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                clearInterval(gameInterval);
+                alert("¡Game Over!");
+                gameRunning = false;
+                startScreen.style.display = "flex";
+                return;
+            }
+            
+            snake.unshift(head);
+        }
+        
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawApple();
+            updateSnake();
+            drawSnake();
+        }
+        
+        function restartGameLoop() {
+            clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, speed);
+        }
+        
+        document.getElementById("startGame").addEventListener("click", () => {
+            startScreen.style.display = "none";
+            if (!gameRunning) {
+                snake = [{ x: 200, y: 200 }];
+                newDirection = "RIGHT";
+                gameRunning = true;
+                speed = 300;
+                score = 0;
+                restartGameLoop();
+            }
+        });
+        
+        document.getElementById("pauseGame").addEventListener("click", () => {
+            clearInterval(gameInterval);
+        });
+        
+        document.getElementById("resumeGame").addEventListener("click", () => {
+            restartGameLoop();
+        });
+        
+        document.getElementById("endGame").addEventListener("click", () => {
+            clearInterval(gameInterval);
+            gameRunning = false;
+            startScreen.style.display = "flex";
+        });
+        
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowRight" && direction !== "LEFT") newDirection = "RIGHT";
+            if (event.key === "ArrowLeft" && direction !== "RIGHT") newDirection = "LEFT";
+            if (event.key === "ArrowUp" && direction !== "DOWN") newDirection = "UP";
+            if (event.key === "ArrowDown" && direction !== "UP") newDirection = "DOWN";
+        });
+    </script>
+</body>
+</html>
